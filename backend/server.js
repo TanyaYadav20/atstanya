@@ -1,7 +1,22 @@
-const express = require("express");
+require("dotenv").config();
 
+const express = require("express");
+const mongoose = require("mongoose");
 const app = express();
 const PORT = 5000;
+
+console.log(process.env.MONGO_URI);
+
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("Successfully connected to MongoDB");
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
 
 // Health check route
 app.get("/health", (req, res) => {
