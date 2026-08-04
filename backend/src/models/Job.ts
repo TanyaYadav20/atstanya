@@ -1,9 +1,11 @@
 import mongoose from "mongoose";
+
 interface IJob {
   title: string;
   description: string;
-  tenantId: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
 }
+
 const JobSchema = new mongoose.Schema<IJob>({
   title: {
     type: String,
@@ -13,12 +15,13 @@ const JobSchema = new mongoose.Schema<IJob>({
     type: String,
     required: true,
   },
-  tenantId: {
+  createdBy: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
     required: true,
-    ref: "Tenant",
   },
 });
-const Job = mongoose.model("Job", JobSchema);
+
+const Job = mongoose.model<IJob>("Job", JobSchema);
 
 export default Job;
