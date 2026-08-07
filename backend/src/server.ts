@@ -1,8 +1,11 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+
 import authRoutes from "./routes/authRoutes";
 import jobRoutes from "./routes/jobRoutes";
+import candidateRoutes from "./routes/candidateRoutes";
+
 
 dotenv.config();
 
@@ -25,6 +28,8 @@ mongoose
 // Auth routes
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/candidates", candidateRoutes);
+
 
 
 // Health check route
