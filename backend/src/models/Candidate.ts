@@ -5,13 +5,9 @@ interface ICandidate {
   name: string;
   email: string;
   phone: string;
-  totalExperienceYears: number;
+  totalExperienceYears: 0;
   resumeFilePath: string;
 
-  skills: string[];
-  experience: string;
-  projects: string;
-  education: string;
 }
 
 const CandidateSchema = new mongoose.Schema(
@@ -36,8 +32,8 @@ const CandidateSchema = new mongoose.Schema(
 
     phone: {
       type: String,
-      required: true,
-      trim: true,
+     required: false,
+     default: "",
     },
 
     totalExperienceYears: {
@@ -51,25 +47,11 @@ const CandidateSchema = new mongoose.Schema(
       required: true,
     },
 
-    skills: {
-      type: [String],
-      default: [],
-    },
-
-    experience: {
+    resumeText: {
       type: String,
-      default: "",
+      required: true,
     },
-
-    projects: {
-      type: String,
-      default: "",
-    },
-
-    education: {
-      type: String,
-      default: "",
-    },
+    
   },
   {
     timestamps: true,
