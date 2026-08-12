@@ -11,12 +11,17 @@ import { buildUserPrompt } from "../prompts/userPrompt";
 // ============================================================
 
 const apiKey = process.env.GEMINI_API_KEY;
+const modelName = process.env.GEMINI_MODEL?.trim();
 
 if (!apiKey) {
   throw new Error("GEMINI_API_KEY is not configured");
 }
+if (!modelName) {
+  throw new Error("GEMINI_MODEL is not configured");
+}
 
 const genAI = new GoogleGenerativeAI(apiKey);
+const geminiModel = modelName as string;
 
 // ============================================================
 // AI RESPONSE SCHEMA
@@ -94,10 +99,10 @@ export async function analyzeCandidate(
   // Create Gemini model
   // ----------------------------------------------------------
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.6-flash",
-    systemInstruction: SYSTEM_PROMPT,
-  });
+ const model = genAI.getGenerativeModel({
+  model: geminiModel,
+  systemInstruction: SYSTEM_PROMPT,
+});
 
   // ----------------------------------------------------------
   // Build user prompt

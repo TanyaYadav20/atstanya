@@ -64,14 +64,11 @@ router.post(
       );
 
       console.log(
-        "========== RESUME TEXT =========="
-      );
-
-      console.log(resumeText);
-
-      console.log(
-        "================================="
-      );
+        "Resume parsed successfully",
+     {
+       characters: resumeText.length,
+     }
+    );
 
       
       // 5. Find or create candidate
