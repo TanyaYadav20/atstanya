@@ -6,6 +6,10 @@ import { candidateSchema } from "../validators/candidateValidator";
 import { parseResume } from "../utils/resumeParser";
 import Job from "../models/Job";
 import { analyzeCandidate } from "../services/gemini.service";
+import {
+  findOrCreateCandidate,
+  ensureNoDuplicateApplication,
+} from "../services/candidate.service";
 
 const router = Router();
 
@@ -74,42 +78,23 @@ router.post(
       // 5. Find or create candidate
       
 
-      let candidate = await Candidate.findOne({
-        email,
-      });
+     const candidate = await findOrCreateCandidate({
+     name,
+     email,
+     phone,
+     totalExperienceYears,
+     resumeFilePath: req.file.path,
+     resumeText,
+    });
 
-      if (!candidate) {
-        candidate = await Candidate.create({
-          name,
-          email,
-          phone,
-          totalExperienceYears,
-          resumeFilePath: req.file.path,
-          resumeText,
-        });
-      } else {
-        // Update resume if candidate already exists
-        candidate.resumeFilePath = req.file.path;
-        candidate.resumeText = resumeText;
-
-        await candidate.save();
-      }
 
       
       // 6. Check duplicate application
       
-      const existingApplication =
-        await Application.findOne({
-          candidateId: candidate._id,
-          jobId: job._id,
-        });
-
-      if (existingApplication) {
-        return res.status(400).json({
-          message:
-            "Candidate has already applied for this job",
-        });
-      }
+      await ensureNoDuplicateApplication(
+      candidate._id.toString(),
+     job._id.toString()
+     );
 
       
       // 7. Create application FIRST
@@ -169,21 +154,28 @@ router.post(
 
         application,
 
-        resumeText,
 
         aiAnalysis,
       });
 
     } catch (error) {
-      console.error(
-        "Candidate apply error:",
-        error
-      );
+  console.error("Candidate apply error:", error);
 
-      return res.status(500).json({
-        message: "Internal Server Error",
-      });
-    }
+  const statusCode =
+    error instanceof Error &&
+    "statusCode" in error
+      ? (error as Error & {
+          statusCode?: number;
+        }).statusCode ?? 500
+      : 500;
+
+  return res.status(statusCode).json({
+    message:
+      error instanceof Error
+        ? error.message
+        : "Internal Server Error",
+  });
+}
   }
 );
 
@@ -197,10 +189,12 @@ router.post(
   upload.array("resumes", 20),
   async (req, res) => {
     try {
-      console.log(
-        "req.files:",
-        req.files
-      );
+     console.log(
+     "Resume files received:",
+      Array.isArray(req.files)
+      ? req.files.length
+      : 0
+    );
 
       const files =
         req.files as Express.Multer.File[];
@@ -274,7 +268,7 @@ router.post(
           // 4.3 Create candidate
          
           const candidate =
-            await Candidate.create({
+            await findOrCreateCandidate({
               name: aiAnalysis.candidate.name,
               email: aiAnalysis.candidate.email,
               phone: aiAnalysis.candidate.phone,
@@ -282,6 +276,11 @@ router.post(
               resumeFilePath: file.path,
               resumeText,
             });
+
+            await ensureNoDuplicateApplication(
+            candidate._id.toString(),
+            job._id.toString()
+       );
 
           
           // 4.4 Create application AFTER AI analysis
@@ -313,8 +312,11 @@ router.post(
 
           // Continue processing remaining resumes
           extractedResumes.push({
-            fileName: file.originalname,
-            error: "Failed to process resume",
+              fileName: file.originalname,
+              error:
+               fileError instanceof Error
+                ? fileError.message
+                : "Failed to process resume",
           });
         }
       }
