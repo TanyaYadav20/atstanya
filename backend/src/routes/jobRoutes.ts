@@ -47,9 +47,7 @@ router.post("/", requireAuth, async (req, res) => {
 
 router.get("/", requireAuth, async (req, res) => {
   try {
-    const jobs = await Job.find({
-      createdBy: req.user?.userId,
-    });
+    const jobs = await Job.find({});
 
     return res.status(200).json({
       jobs,
@@ -70,7 +68,6 @@ router.get("/:id", requireAuth, async (req, res) => {
   try {
     const job = await Job.findOne({
       _id: req.params.id,
-      createdBy: req.user?.userId,
     });
 
     if (!job) {
@@ -99,7 +96,6 @@ router.put("/:id", requireAuth, async (req, res) => {
     const updatedJob = await Job.findOneAndUpdate(
       {
         _id: req.params.id,
-        createdBy: req.user?.userId,
       },
       req.body,
       {
@@ -134,7 +130,6 @@ router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const deletedJob = await Job.findOneAndDelete({
       _id: req.params.id,
-      createdBy: req.user?.userId,
     });
 
     if (!deletedJob) {
