@@ -10,7 +10,7 @@ const router = Router();
 
 //Register
 
-router.post("/register", async (req, res) => {
+router.post("/register", async (req, res, next) => {
   try {
     // Validate request
     const { error, value } = registerSchema.validate(req.body);
@@ -47,18 +47,14 @@ router.post("/register", async (req, res) => {
       message: "User registered successfully",
     });
   } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      message: "Internal Server Error",
-    });
+    next(error);
   }
 });
 
 
 //Login
 
-router.post("/login", async (req, res) => {
+router.post("/login", async (req, res, next) => {
   try {
     // Validate request
     const { error, value } = loginSchema.validate(req.body);
@@ -108,11 +104,7 @@ router.post("/login", async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      message: "Internal Server Error",
-    });
+    next(error);
   }
 });
 

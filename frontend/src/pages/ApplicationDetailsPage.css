@@ -1,0 +1,206 @@
+.application-details-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+}
+
+.application-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.application-details-header h1 {
+  margin: 0 0 4px;
+}
+
+.application-details-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.application-details-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.application-details-section h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.application-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.application-details-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.application-details-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.application-details-state {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.application-details-state-error {
+  color: var(--color-danger);
+}
+
+.app-status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.app-status-applied {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.app-status-shortlisted {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.app-status-rejected {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.application-analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.application-analysis-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.application-analysis-summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.application-analysis-summary-block p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.application-analysis-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.application-analysis-row p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+}
+
+.skill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-chip {
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  white-space: nowrap;
+}
+
+.skill-chip-missing {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.application-red-flags {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
+.score-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.score-ring::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.score-ring-lg {
+  width: 72px;
+  height: 72px;
+}
+
+.score-ring-lg .score-ring-value {
+  font-size: 1rem;
+}
+
+.score-ring-value {
+  position: relative;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.score-high {
+  color: var(--color-success);
+}
+
+.score-medium {
+  color: var(--color-accent);
+}
+
+.score-low {
+  color: var(--color-danger);
+}

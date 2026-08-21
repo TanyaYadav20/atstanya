@@ -1,0 +1,141 @@
+.job-details-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+}
+
+.job-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.job-details-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.job-details-title-row h1 {
+  margin: 0;
+}
+
+.job-details-date {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.job-details-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.job-details-section h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.job-details-description {
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.job-details-state {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.job-details-state-error {
+  color: var(--color-danger);
+}
+
+.applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.application-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.application-rank {
+  font-weight: 700;
+  color: var(--color-text-muted);
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.application-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.application-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.application-detail {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.application-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.score-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-accent-hover);
+}
+
+.score-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.app-status-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.app-status-applied {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.app-status-shortlisted {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.app-status-rejected {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}

@@ -145,6 +145,30 @@ If no phone number exists:
 phone = ""
 
 ============================================================
+5A. LINKEDIN AND GITHUB EXTRACTION
+============================================================
+
+Extract the candidate's LinkedIn profile URL and GitHub profile
+URL only if either is explicitly present in the resume.
+
+Do not invent or reconstruct a LinkedIn or GitHub URL.
+
+Do not guess a URL from the candidate's name, email, or any
+other field.
+
+If a LinkedIn URL is not present:
+
+linkedinUrl = ""
+
+If a GitHub URL is not present:
+
+githubUrl = ""
+
+These fields are used only to help distinguish one candidate
+from another when the same person applies more than once. They
+must never be fabricated.
+
+============================================================
 6. PROFESSIONAL EXPERIENCE EXTRACTION
 ============================================================
 
@@ -599,6 +623,12 @@ name
 email
 phone
 totalExperienceYears
+
+The candidate object may also contain, when present in the
+resume:
+
+linkedinUrl
+githubUrl
 
 The hardSkillsMatch object must contain:
 

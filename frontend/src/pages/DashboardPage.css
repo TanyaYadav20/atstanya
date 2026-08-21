@@ -1,0 +1,31 @@
+.dashboard-shell {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-brand {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.dashboard-main {
+  padding: 48px 28px;
+  max-width: 720px;
+}
+
+.dashboard-main h1 {
+  margin: 0 0 8px;
+}
+
+.dashboard-main p {
+  color: var(--color-text-secondary);
+}
