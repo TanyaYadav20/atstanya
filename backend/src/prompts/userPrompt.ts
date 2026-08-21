@@ -62,6 +62,8 @@ Extract the following information from the resume:
 2. Primary email address
 3. Phone number
 4. Total professional experience in years
+5. LinkedIn profile URL (only if explicitly present)
+6. GitHub profile URL (only if explicitly present)
 
 Rules:
 
@@ -69,9 +71,12 @@ Rules:
 - Never invent an email address.
 - Never invent a phone number.
 - Never invent a candidate name.
+- Never invent or guess a LinkedIn or GitHub URL.
 - If email is unavailable, return an empty string.
 - If phone is unavailable, return an empty string.
 - If name is unavailable, return an empty string.
+- If LinkedIn is unavailable, return an empty string.
+- If GitHub is unavailable, return an empty string.
 - Do not count education as professional experience.
 - Do not automatically count academic projects as professional
   experience.

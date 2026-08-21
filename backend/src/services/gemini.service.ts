@@ -16,12 +16,12 @@ const modelName = process.env.GEMINI_MODEL?.trim();
 if (!apiKey) {
   throw new Error("GEMINI_API_KEY is not configured");
 }
+
 if (!modelName) {
   throw new Error("GEMINI_MODEL is not configured");
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const geminiModel = modelName as string;
 
 // ============================================================
 // AI RESPONSE SCHEMA
@@ -38,6 +38,10 @@ const AIAnalysisSchema = z.object({
     email: z.string(),
 
     phone: z.string(),
+
+    linkedinUrl: z.string().optional(),
+
+    githubUrl: z.string().optional(),
 
     totalExperienceYears: z
       .number()
@@ -72,6 +76,7 @@ const AIAnalysisSchema = z.object({
   executiveSummary: z.string(),
 });
 
+// Export the TypeScript type
 export type AIAnalysis =
   z.infer<typeof AIAnalysisSchema>;
 
@@ -85,7 +90,7 @@ export async function analyzeCandidate(
 ): Promise<AIAnalysis> {
 
   // ----------------------------------------------------------
-  // Validate resume
+  // 1. Validate resume
   // ----------------------------------------------------------
 
   if (
@@ -96,22 +101,25 @@ export async function analyzeCandidate(
   }
 
   // ----------------------------------------------------------
-  // Create Gemini model
+  // 2. Create Gemini model
   // ----------------------------------------------------------
 
- const model = genAI.getGenerativeModel({
-  model: geminiModel,
-  systemInstruction: SYSTEM_PROMPT,
-});
+  const model =
+    genAI.getGenerativeModel({
+      model: modelName,
+      systemInstruction:
+        SYSTEM_PROMPT,
+    });
 
   // ----------------------------------------------------------
-  // Build user prompt
+  // 3. Build user prompt
   // ----------------------------------------------------------
 
-  const userPrompt = buildUserPrompt(
-    job,
-    resumeText
-  );
+  const userPrompt =
+    buildUserPrompt(
+      job,
+      resumeText
+    );
 
   console.log(
     "========== SENDING TO GEMINI =========="
@@ -127,7 +135,7 @@ export async function analyzeCandidate(
   );
 
   // ----------------------------------------------------------
-  // Call Gemini
+  // 4. Call Gemini
   // ----------------------------------------------------------
 
   const result =
@@ -153,9 +161,9 @@ export async function analyzeCandidate(
 
           properties: {
 
-            // ------------------------------------------------
+            // ==================================================
             // Candidate
-            // ------------------------------------------------
+            // ==================================================
 
             candidate: {
               type: "object",
@@ -173,6 +181,14 @@ export async function analyzeCandidate(
                   type: "string",
                 },
 
+                linkedinUrl: {
+                  type: "string",
+                },
+
+                githubUrl: {
+                  type: "string",
+                },
+
                 totalExperienceYears: {
                   type: "number",
                 },
@@ -186,25 +202,25 @@ export async function analyzeCandidate(
               ],
             },
 
-            // ------------------------------------------------
+            // ==================================================
             // Scoring rationale
-            // ------------------------------------------------
+            // ==================================================
 
             scoringRationale: {
               type: "string",
             },
 
-            // ------------------------------------------------
-            // Overall score
-            // ------------------------------------------------
+            // ==================================================
+            // Overall match score
+            // ==================================================
 
             overallMatchScore: {
               type: "number",
             },
 
-            // ------------------------------------------------
+            // ==================================================
             // Hard skills
-            // ------------------------------------------------
+            // ==================================================
 
             hardSkillsMatch: {
               type: "object",
@@ -233,10 +249,9 @@ export async function analyzeCandidate(
               ],
             },
 
-            // ------------------------------------------------
+           
             // Must-have evaluation
-            // ------------------------------------------------
-
+            
             mustHaveEvaluation: {
               type: "object",
 
@@ -256,9 +271,9 @@ export async function analyzeCandidate(
               ],
             },
 
-            // ------------------------------------------------
+            // ==================================================
             // Red flags
-            // ------------------------------------------------
+            // ==================================================
 
             redFlags: {
               type: "array",
@@ -268,9 +283,9 @@ export async function analyzeCandidate(
               },
             },
 
-            // ------------------------------------------------
+            // ==================================================
             // Executive summary
-            // ------------------------------------------------
+            // ==================================================
 
             executiveSummary: {
               type: "string",
@@ -291,7 +306,7 @@ export async function analyzeCandidate(
     });
 
   // ----------------------------------------------------------
-  // Get Gemini response
+  // 5. Get Gemini response
   // ----------------------------------------------------------
 
   const responseText =
@@ -314,18 +329,15 @@ export async function analyzeCandidate(
   );
 
   // ----------------------------------------------------------
-  // Parse JSON
+  // 6. Parse JSON
   // ----------------------------------------------------------
 
   let parsedResponse: unknown;
 
   try {
-
     parsedResponse =
       JSON.parse(responseText);
-
   } catch (error) {
-
     console.error(
       "Gemini JSON parse error:",
       error
@@ -337,7 +349,7 @@ export async function analyzeCandidate(
   }
 
   // ----------------------------------------------------------
-  // Validate using Zod
+  // 7. Validate response using Zod
   // ----------------------------------------------------------
 
   const validationResult =
@@ -346,7 +358,6 @@ export async function analyzeCandidate(
     );
 
   if (!validationResult.success) {
-
     console.error(
       "Gemini response validation failed:"
     );
@@ -361,7 +372,7 @@ export async function analyzeCandidate(
   }
 
   // ----------------------------------------------------------
-  // Return validated result
+  // 8. Return validated response
   // ----------------------------------------------------------
 
   return validationResult.data;

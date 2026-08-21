@@ -25,9 +25,15 @@ interface IApplication {
 
   jobId: mongoose.Types.ObjectId;
 
+  resumeId: mongoose.Types.ObjectId;
+
   status: "APPLIED" | "SHORTLISTED" | "REJECTED";
 
   aiAnalysis?: IAIAnalysis;
+
+  
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const AIAnalysisSchema = new mongoose.Schema(
@@ -97,6 +103,13 @@ const ApplicationSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Resume used for this particular application
+    resumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Resume",
+      required: true,
+    },
+
     status: {
       type: String,
       enum: ["APPLIED", "SHORTLISTED", "REJECTED"],
@@ -112,6 +125,20 @@ const ApplicationSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Prevent duplicate applications for the same
+// candidate and job.
+ApplicationSchema.index(
+  {
+    candidateId: 1,
+    jobId: 1,
+  },
+  {
+    unique: true,
+  }
+);
+
+
 
 const Application = mongoose.model<IApplication>(
   "Application",

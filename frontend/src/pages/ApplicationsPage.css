@@ -1,0 +1,253 @@
+.applications-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.applications-header h1 {
+  margin: 0 0 4px;
+}
+
+.applications-subtitle {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.applications-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.applications-search,
+.applications-filter {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.applications-search {
+  flex: 1;
+  min-width: 260px;
+}
+
+.applications-search:focus,
+.applications-filter:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.applications-state {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.applications-state-error {
+  color: var(--color-danger);
+}
+
+.applications-muted {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.applications-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.applications-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.applications-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.applications-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.applications-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.applications-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.col-actions {
+  text-align: right;
+}
+
+.candidate-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.candidate-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.candidate-email {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.ai-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ai-status-completed {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.ai-status-none {
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+}
+
+.app-status-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.app-status-applied {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.app-status-shortlisted {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.app-status-rejected {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.score-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.score-ring::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.score-ring-value {
+  position: relative;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.score-high {
+  color: var(--color-success);
+}
+
+.score-medium {
+  color: var(--color-accent);
+}
+
+.score-low {
+  color: var(--color-danger);
+}
+
+@media (max-width: 820px) {
+  .applications-table-wrap {
+    border: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .applications-table thead {
+    display: none;
+  }
+
+  .applications-table,
+  .applications-table tbody,
+  .applications-table tr,
+  .applications-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .applications-table tr {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    padding: 8px 4px;
+  }
+
+  .applications-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: none;
+    padding: 8px 12px;
+    text-align: right;
+  }
+
+  .applications-table td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .candidate-cell {
+    align-items: flex-end;
+  }
+
+  .col-actions {
+    text-align: right;
+  }
+}

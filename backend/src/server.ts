@@ -5,6 +5,9 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes";
 import jobRoutes from "./routes/jobRoutes";
 import candidateRoutes from "./routes/candidateRoutes";
+import applicationRoutes from "./routes/applicationRoutes";
+import resumeRoutes from "./routes/resumeRoutes";
+import errorHandler from "./middleware/errorHandler";
 
 
 dotenv.config();
@@ -29,6 +32,8 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/candidates", candidateRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/resumes", resumeRoutes);
 
 
 
@@ -38,6 +43,10 @@ app.get("/health", (_req, res) => {
     message: "API is healthy",
   });
 });
+
+// Centralized error handler — must be registered after every
+// route so it can catch errors passed via next(error).
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
