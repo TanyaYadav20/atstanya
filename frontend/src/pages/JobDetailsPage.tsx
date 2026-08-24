@@ -6,6 +6,12 @@ import { ApiError } from "../types/auth";
 import type { Job, RankedApplication } from "../types/job";
 import "./JobDetailsPage.css";
 
+function scoreClass(score: number): string {
+  if (score >= 75) return "score-high";
+  if (score >= 45) return "score-medium";
+  return "score-low";
+}
+
 export default function JobDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -150,7 +156,9 @@ export default function JobDetailsPage() {
                   </div>
                   {application.aiAnalysis && (
                     <div className="application-score">
-                      <span className="score-value">
+                      <span
+                        className={`score-value ${scoreClass(application.aiAnalysis.overallMatchScore)}`}
+                      >
                         {application.aiAnalysis.overallMatchScore}
                       </span>
                       <span className="score-label">AI Match</span>

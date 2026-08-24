@@ -19,7 +19,7 @@ function isPopulatedCandidate(candidateId: Candidate | string): candidateId is C
 
 function scoreClass(score: number): string {
   if (score >= 75) return "score-high";
-  if (score >= 50) return "score-medium";
+  if (score >= 45) return "score-medium";
   return "score-low";
 }
 
@@ -311,7 +311,7 @@ export default function AIAnalysisPage() {
                                 <div className="ai-analysis-bar-cell">
                                   <div className="ai-analysis-bar-track">
                                     <div
-                                      className="ai-analysis-bar-fill"
+                                      className={`ai-analysis-bar-fill ${scoreClass(skillsPercent)}`}
                                       style={{ width: `${skillsPercent}%` }}
                                     />
                                   </div>

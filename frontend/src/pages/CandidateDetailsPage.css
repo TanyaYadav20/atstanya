@@ -108,24 +108,35 @@
 }
 
 .app-status-applied {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 .app-status-shortlisted {
-  background: var(--color-success-soft);
-  color: var(--color-success);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 .app-status-rejected {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  background: var(--status-bad-soft);
+  color: var(--status-bad);
 }
 
 .score-value {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-accent-hover);
+}
+
+.score-value.score-high {
+  color: var(--status-good);
+}
+
+.score-value.score-medium {
+  color: var(--status-medium);
+}
+
+.score-value.score-low {
+  color: var(--status-bad);
 }
 
 .score-label {
@@ -161,19 +172,19 @@
   font-size: 0.75rem;
   padding: 3px 9px;
   border-radius: 999px;
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
+  background: var(--status-good-soft);
+  color: var(--status-good);
   white-space: nowrap;
 }
 
 .skill-chip-missing {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  background: var(--status-bad-soft);
+  color: var(--status-bad);
 }
 
 .candidate-red-flags {
   margin: 0;
   padding-left: 18px;
-  color: var(--color-danger);
+  color: var(--status-bad);
   font-size: 0.85rem;
 }

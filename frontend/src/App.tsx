@@ -11,6 +11,7 @@ import ApplicationsPage from "./pages/ApplicationsPage";
 import ApplicationDetailsPage from "./pages/ApplicationDetailsPage";
 import ResumeUploadPage from "./pages/ResumeUploadPage";
 import AIAnalysisPage from "./pages/AIAnalysisPage";
+import SettingsPage from "./pages/SettingsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 // Shared layout for every authenticated screen: sidebar stays mounted
@@ -42,6 +43,7 @@ function App() {
         <Route path="/applications/:id" element={<ApplicationDetailsPage />} />
         <Route path="/resume-upload" element={<ResumeUploadPage />} />
         <Route path="/ai-analysis" element={<AIAnalysisPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

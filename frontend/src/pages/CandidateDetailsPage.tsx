@@ -11,6 +11,12 @@ function isPopulatedJob(job: Job | string): job is Job {
   return typeof job === "object" && job !== null;
 }
 
+function scoreClass(score: number): string {
+  if (score >= 75) return "score-high";
+  if (score >= 45) return "score-medium";
+  return "score-low";
+}
+
 export default function CandidateDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -173,7 +179,9 @@ export default function CandidateDetailsPage() {
                     </div>
                     {analysis && (
                       <div className="candidate-application-score">
-                        <span className="score-value">{analysis.overallMatchScore}%</span>
+                        <span className={`score-value ${scoreClass(analysis.overallMatchScore)}`}>
+                          {analysis.overallMatchScore}%
+                        </span>
                         <span className="score-label">AI Match</span>
                       </div>
                     )}

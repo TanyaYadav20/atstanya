@@ -5,6 +5,7 @@ import Input from "../components/Input";
 import PasswordInput from "../components/PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../types/auth";
+import juntraxLogo from "../assets/juntrax-logo.png";
 import "./AuthPage.css";
 
 type Mode = "login" | "register";
@@ -120,9 +121,9 @@ export default function AuthPage() {
       <div className="auth-container">
         <div className="auth-brand">
           <div className="auth-brand-mark">
-            <BrandIcon />
+            <img src={juntraxLogo} alt="Juntrax" />
           </div>
-          <h1 className="auth-brand-title">AI-ATS</h1>
+          <h1 className="auth-brand-title">Juntrax ATS</h1>
           <p className="auth-brand-subtitle">AI-Powered Applicant Tracking System</p>
         </div>
 
@@ -244,19 +245,10 @@ export default function AuthPage() {
           )}
         </div>
 
-        <p className="auth-footer">© {new Date().getFullYear()} AI-ATS. All rights reserved.</p>
+        <p className="auth-footer">
+          © {new Date().getFullYear()} Juntrax AI-ATS. All rights reserved.
+        </p>
       </div>
     </div>
-  );
-}
-
-function BrandIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 2.5 20 21h-3.4l-1.6-4.2h-6l-1.6 4.2H4L12 2.5Zm0 5.9-2.1 5.5h4.2L12 8.4Z"
-        fill="currentColor"
-      />
-    </svg>
   );
 }

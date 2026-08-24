@@ -124,11 +124,70 @@
 }
 
 .status-open {
-  background: var(--color-success-soft);
-  color: var(--color-success);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 .status-closed {
-  background: var(--color-danger-soft);
+  background: var(--status-bad-soft);
+  color: var(--status-bad);
+}
+
+.job-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.job-card-delete {
   color: var(--color-danger);
+}
+
+.job-edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 30;
+}
+
+.job-edit-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.job-edit-modal h2 {
+  margin: 0 0 16px;
+}
+
+.job-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.job-edit-description-input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.job-edit-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.job-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
