@@ -10,10 +10,6 @@ const router = Router();
 
 // ============================================================
 // GET /api/resumes/jobs
-//
-// Every job, with how many recruiter-uploaded resumes exist in
-// its pool. Uses an aggregation for the counts rather than
-// loading every Resume document into memory.
 // ============================================================
 
 router.get("/jobs", requireAuth, async (_req, res, next) => {
@@ -57,10 +53,6 @@ router.get("/jobs", requireAuth, async (_req, res, next) => {
 
 // ============================================================
 // GET /api/resumes?jobId=...
-//
-// All resumes in a job's pool, ranked by AI score. Rank is
-// computed here for the response only — never written to
-// MongoDB.
 // ============================================================
 
 router.get("/", requireAuth, async (req, res, next) => {

@@ -3,8 +3,6 @@ import mongoose from "mongoose";
 
 // ============================================================
 // An error that intentionally carries its own HTTP status code
-// (e.g. thrown by application-level code that wants a specific
-// response). Ordinary errors just don't have this property.
 // ============================================================
 
 export interface AppError extends Error {
@@ -24,13 +22,6 @@ function isDuplicateKeyError(
 
 // ============================================================
 // CENTRALIZED ERROR HANDLER
-//
-// Registered once, after every route, as the last app.use() in
-// server.ts. Routes hand unexpected errors to this via
-// next(error) instead of building their own response — explicit
-// responses a route already returns directly (400/401/403/404/
-// 409 via res.status(...).json(...)) never reach this handler at
-// all, since they return before anything throws.
 // ============================================================
 
 function errorHandler(

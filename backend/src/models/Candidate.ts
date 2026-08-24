@@ -3,10 +3,6 @@ import { normalizeUrl } from "../utils/normalize";
 
 // ============================================================
 // A record of an ambiguous (REVIEW-confidence) candidate match.
-// Written when candidateMatching.service.ts cannot confidently
-// say two resumes belong to the same person, so a new Candidate
-// is created instead of silently merging — this is what lets a
-// human later confirm/reject the possible duplicate.
 // ============================================================
 
 export interface IPossibleDuplicate {

@@ -46,10 +46,7 @@ const ResumeSchema = new mongoose.Schema<IResume>(
       required: true,
     },
 
-    // The same Gemini output that may also be stored on an
-    // Application (models/Application.ts, untouched by this
-    // feature) — kept here too so a resume in the pool has its
-    // score/analysis even when no Application exists for it yet.
+   
     aiAnalysis: {
       type: AIAnalysisSchema,
       default: null,

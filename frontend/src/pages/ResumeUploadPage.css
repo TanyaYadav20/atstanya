@@ -105,6 +105,182 @@
   display: none;
 }
 
+/* Drag-and-drop resume upload */
+
+.resume-dropzone-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resume-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 40px 20px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.resume-dropzone:hover,
+.resume-dropzone:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.resume-dropzone:focus-visible {
+  outline: none;
+}
+
+.resume-dropzone-active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.resume-dropzone-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.resume-dropzone-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.resume-dropzone-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.resume-dropzone-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.resume-dropzone-support {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.resume-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.resume-file-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.resume-file-list-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resume-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.resume-file-check {
+  color: var(--status-good);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.resume-file-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.resume-file-name {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-file-details {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.resume-file-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--status-bad);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.resume-file-remove:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.resume-file-remove:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .resume-dropzone {
+    padding: 28px 14px;
+  }
+
+  .resume-dropzone-icon {
+    font-size: 1.5rem;
+  }
+
+  .resume-dropzone-title {
+    font-size: 0.95rem;
+  }
+
+  .resume-file-row {
+    flex-wrap: wrap;
+  }
+
+  .resume-file-remove {
+    margin-left: auto;
+  }
+}
+
 .resume-upload-state {
   color: var(--color-text-secondary);
   margin: 0;
@@ -129,12 +305,48 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .resume-upload-banner-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+}
+
+.resume-upload-banner-header strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.resume-upload-banner-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.resume-upload-banner-warning {
+  border-color: var(--status-medium);
+}
+
+.resume-upload-banner-warning .resume-upload-banner-header strong {
+  color: var(--status-medium);
+}
+
+.resume-upload-banner-danger {
+  border-color: var(--status-bad);
+  background: var(--status-bad-soft);
+}
+
+.resume-upload-banner-danger .resume-upload-banner-header strong {
+  color: var(--status-bad);
 }
 
 .resume-upload-banner-dismiss {
@@ -145,6 +357,7 @@
   line-height: 1;
   cursor: pointer;
   padding: 4px;
+  flex-shrink: 0;
 }
 
 .resume-upload-banner-dismiss:hover {
@@ -167,6 +380,10 @@
   flex-wrap: wrap;
   font-size: 0.85rem;
   color: var(--color-text-secondary);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .resume-upload-banner-file {
@@ -182,6 +399,10 @@
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .resume-upload-tag {
@@ -190,6 +411,26 @@
   padding: 3px 9px;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+/* Full-text error message (e.g. Gemini/API failures) — unlike the short
+   status pills above, this can be arbitrarily long, so it takes its own
+   full-width line inside the banner list and wraps instead of truncating. */
+.resume-upload-error-text {
+  display: block;
+  width: 100%;
+  min-width: 220px;
+  box-sizing: border-box;
+  background: var(--status-bad-soft);
+  color: var(--status-bad);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tag-created {

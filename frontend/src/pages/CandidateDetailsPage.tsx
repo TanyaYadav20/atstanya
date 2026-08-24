@@ -3,12 +3,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import Button from "../components/Button";
 import { fetchApplicationsForCandidate, fetchCandidate } from "../lib/candidatesApi";
 import { ApiError } from "../types/auth";
-import type { Candidate, CandidateApplication } from "../types/candidate";
+import type { Candidate, CandidateApplication, Resume } from "../types/candidate";
 import type { Job } from "../types/job";
 import "./CandidateDetailsPage.css";
 
 function isPopulatedJob(job: Job | string): job is Job {
   return typeof job === "object" && job !== null;
+}
+
+function isPopulatedResume(resume: Resume | string): resume is Resume {
+  return typeof resume === "object" && resume !== null;
 }
 
 function scoreClass(score: number): string {
@@ -164,6 +168,7 @@ export default function CandidateDetailsPage() {
           <div className="candidate-applications-list">
             {applications.map((application) => {
               const job = isPopulatedJob(application.jobId) ? application.jobId : null;
+              const resume = isPopulatedResume(application.resumeId) ? application.resumeId : null;
               const analysis = application.aiAnalysis;
 
               return (
@@ -192,6 +197,15 @@ export default function CandidateDetailsPage() {
                       Applied {new Date(application.createdAt).toLocaleDateString()}
                     </span>
                   )}
+
+                  <div className="candidate-skills-row">
+                    <span className="candidate-details-label">Resume</span>
+                    <span>
+                      {resume
+                        ? `On file · uploaded ${new Date(resume.createdAt).toLocaleDateString()}`
+                        : "Not available"}
+                    </span>
+                  </div>
 
                   {analysis ? (
                     <div className="candidate-application-analysis">

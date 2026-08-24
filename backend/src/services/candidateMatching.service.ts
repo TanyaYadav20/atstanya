@@ -55,11 +55,6 @@ const REVIEW_THRESHOLD = 60;
 
 // ============================================================
 // FIELD MATCHING
-//
-// Normalization (normalizeText/normalizePhone/normalizeUrl)
-// lives in ../utils/normalize.ts so the Candidate schema (which
-// normalizes linkedinUrl/githubUrl on write) and this matcher
-// (which normalizes on read/compare) can never drift apart.
 // ============================================================
 
 function isExactMatch(
@@ -205,12 +200,6 @@ export function calculateCandidateMatchScore(
   // ----------------------------------------------------------
   // Experience
   // ----------------------------------------------------------
-
-  // Experience is intentionally not used here because
-  // a candidate's experience changes over time.
-  //
-  // The WEIGHTS.experience value is reserved for future
-  // fuzzy matching and should not currently affect identity.
 
   return {
     score,
@@ -418,12 +407,7 @@ export async function findBestCandidateMatch(
   const bestMatch =
     matches[0];
 
-  // `matches` is mapped 1:1 from `possibleCandidates`, and we've
-  // already returned early when that array is empty — so this
-  // is unreachable in practice. The guard exists to satisfy
-  // `noUncheckedIndexedAccess` without an `any` cast or a
-  // non-null assertion, and to fail safely (as NEW, never as a
-  // silent match) in case that invariant is ever broken.
+  
   if (!bestMatch) {
     return {
       candidate: null,
@@ -607,16 +591,7 @@ export async function matchOrCreateCandidate(
     };
   }
 
-  // ----------------------------------------------------------
-  // Uncertain match — per the architecture, this must NEVER
-  // silently attach the new resume to the existing candidate it
-  // resembles. Instead, a new Candidate is created (never lost)
-  // and the ambiguous match is recorded on it via
-  // `possibleDuplicateOf`, so a recruiter/admin can confirm or
-  // reject the merge later. The status returned is still
-  // "REVIEW", so callers know not to treat this as a routine
-  // new-candidate creation.
-  // ----------------------------------------------------------
+  
 
   if (
     match.status === "REVIEW" &&

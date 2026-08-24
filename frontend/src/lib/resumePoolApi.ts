@@ -5,10 +5,7 @@ import type {
   UploadResumesResponse,
 } from "../types/resumePool";
 
-// These map 1:1 to the existing, unmodified backend endpoints in
-// backend/src/routes/resumeRoutes.ts, candidateRoutes.ts and jobRoutes.ts.
-// fetchJobs (jobsApi.ts) and fetchApplicationsForJob (jobsApi.ts) are reused
-// as-is from the existing Jobs/Applications pages.
+
 
 // GET /api/resumes?jobId=... — every resume in a job's recruiter-built
 // pool, ranked by AI score, with candidateId populated.

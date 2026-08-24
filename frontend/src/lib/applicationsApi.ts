@@ -8,12 +8,7 @@ export interface ApplicationWithJob {
   job: Job;
 }
 
-// The backend only exposes GET /api/applications?jobId=... and
-// ?candidateId=... (backend/src/routes/applicationRoutes.ts) — there is
-// no all-applications endpoint, and none is added here. This composes
-// the existing, unmodified jobId-scoped endpoint across every job, the
-// same N+1-over-an-existing-endpoint approach CandidatesPage.tsx already
-// uses for per-candidate applications.
+
 export async function fetchAllApplications(): Promise<ApplicationWithJob[]> {
   const { jobs } = await fetchJobs();
 
