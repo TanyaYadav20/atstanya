@@ -109,7 +109,18 @@
 .score-value {
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--color-accent-hover);
+}
+
+.score-value.score-high {
+  color: var(--status-good);
+}
+
+.score-value.score-medium {
+  color: var(--status-medium);
+}
+
+.score-value.score-low {
+  color: var(--status-bad);
 }
 
 .score-label {
@@ -126,16 +137,16 @@
 }
 
 .app-status-applied {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 .app-status-shortlisted {
-  background: var(--color-success-soft);
-  color: var(--color-success);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 .app-status-rejected {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  background: var(--status-bad-soft);
+  color: var(--status-bad);
 }

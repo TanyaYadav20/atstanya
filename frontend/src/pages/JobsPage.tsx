@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
-import { fetchJobs, fetchResumePoolCounts } from "../lib/jobsApi";
+import Input from "../components/Input";
+import { deleteJob, fetchJobs, fetchResumePoolCounts, updateJob } from "../lib/jobsApi";
 import { ApiError } from "../types/auth";
 import type { Job, JobStatus } from "../types/job";
 import "./JobsPage.css";
 
 type StatusFilter = "ALL" | JobStatus;
+
+// Mirrors backend/src/validators/jobValidator.ts, same as CreateJobPage.
+const TITLE_MIN = 5;
+const TITLE_MAX = 100;
+const DESCRIPTION_MIN = 20;
+const DESCRIPTION_MAX = 1000;
 
 export default function JobsPage() {
   const navigate = useNavigate();
@@ -22,6 +29,16 @@ export default function JobsPage() {
       ? "Job created successfully."
       : null
   );
+
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStatus, setEditStatus] = useState<JobStatus>("OPEN");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (successMessage) {
@@ -80,6 +97,74 @@ export default function JobsPage() {
     });
   }, [jobs, search, statusFilter]);
 
+  function openEditModal(job: Job) {
+    setActionError(null);
+    setEditError(null);
+    setEditingJob(job);
+    setEditTitle(job.title);
+    setEditDescription(job.description);
+    setEditStatus(job.status);
+  }
+
+  function closeEditModal() {
+    setEditingJob(null);
+  }
+
+  async function handleEditSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!editingJob) return;
+    setEditError(null);
+
+    const trimmedTitle = editTitle.trim();
+    const trimmedDescription = editDescription.trim();
+
+    if (trimmedTitle.length < TITLE_MIN || trimmedTitle.length > TITLE_MAX) {
+      setEditError(`Title must be between ${TITLE_MIN} and ${TITLE_MAX} characters.`);
+      return;
+    }
+
+    if (
+      trimmedDescription.length < DESCRIPTION_MIN ||
+      trimmedDescription.length > DESCRIPTION_MAX
+    ) {
+      setEditError(
+        `Description must be between ${DESCRIPTION_MIN} and ${DESCRIPTION_MAX} characters.`
+      );
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await updateJob(editingJob._id, {
+        title: trimmedTitle,
+        description: trimmedDescription,
+        status: editStatus,
+      });
+      setJobs((prev) => prev?.map((j) => (j._id === res.job._id ? res.job : j)) ?? prev);
+      setEditingJob(null);
+    } catch (err) {
+      setEditError(
+        err instanceof ApiError ? err.message : "Unable to update job. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDelete(job: Job) {
+    if (!window.confirm(`Delete "${job.title}"? This cannot be undone.`)) return;
+    setActionError(null);
+    setDeletingId(job._id);
+    try {
+      await deleteJob(job._id);
+      setJobs((prev) => prev?.filter((j) => j._id !== job._id) ?? prev);
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Unable to delete job.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="jobs-page">
       <div className="jobs-header">
@@ -117,6 +202,7 @@ export default function JobsPage() {
 
       {jobs === null && !error && <p className="jobs-state">Loading jobs...</p>}
       {error && <p className="jobs-state jobs-state-error">{error}</p>}
+      {actionError && <p className="jobs-state jobs-state-error">{actionError}</p>}
       {jobs !== null && !error && filteredJobs.length === 0 && (
         <p className="jobs-state">No jobs found.</p>
       )}
@@ -144,12 +230,85 @@ export default function JobsPage() {
                 </span>
               )}
             </div>
-            <Button variant="ghost" onClick={() => navigate(`/jobs/${job._id}`)}>
-              View
-            </Button>
+            <div className="job-card-actions">
+              <Button variant="ghost" onClick={() => navigate(`/jobs/${job._id}`)}>
+                View
+              </Button>
+              <Button variant="ghost" onClick={() => openEditModal(job)}>
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                className="job-card-delete"
+                isLoading={deletingId === job._id}
+                onClick={() => handleDelete(job)}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         ))}
       </div>
+
+      {editingJob && (
+        <div className="job-edit-overlay" onClick={closeEditModal}>
+          <div className="job-edit-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit Job</h2>
+            <form className="job-edit-form" onSubmit={handleEditSubmit}>
+              <Input
+                label="Job Title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                required
+              />
+
+              <div className="field">
+                <label className="field-label" htmlFor="job-edit-description">
+                  Description
+                </label>
+                <textarea
+                  id="job-edit-description"
+                  className="field-input job-edit-description-input"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={6}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label className="field-label" htmlFor="job-edit-status">
+                  Status
+                </label>
+                <select
+                  id="job-edit-status"
+                  className="field-input"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as JobStatus)}
+                >
+                  <option value="OPEN">Open</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
+
+              {editError && (
+                <p className="job-edit-error" role="alert">
+                  {editError}
+                </p>
+              )}
+
+              <div className="job-edit-actions">
+                <Button type="button" variant="ghost" onClick={closeEditModal}>
+                  Cancel
+                </Button>
+                <Button type="submit" isLoading={isSaving}>
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

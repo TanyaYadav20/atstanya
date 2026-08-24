@@ -20,6 +20,37 @@
   flex-wrap: wrap;
 }
 
+.resume-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  width: fit-content;
+}
+
+.resume-view-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.resume-view-toggle-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.resume-view-toggle-btn-active {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
 .resume-upload-job-selector {
   display: flex;
   flex-direction: column;
@@ -162,23 +193,34 @@
 }
 
 .tag-created {
-  background: var(--color-success-soft);
-  color: var(--color-success);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 .tag-duplicate {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
+  background: var(--status-medium-soft);
+  color: var(--status-medium);
 }
 
 .tag-failed {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  background: var(--status-bad-soft);
+  color: var(--status-bad);
 }
 
 .tag-score {
   background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
+}
+
+.tag-score.score-high {
+  color: var(--status-good);
+}
+
+.tag-score.score-medium {
+  color: var(--status-medium);
+}
+
+.tag-score.score-low {
+  color: var(--status-bad);
 }
 
 /* Resume pool table */
@@ -246,7 +288,7 @@
 }
 
 .resume-pool-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-overlay-subtle);
 }
 
 .col-checkbox {
@@ -321,15 +363,15 @@
 }
 
 .score-high {
-  color: var(--color-success);
+  color: var(--status-good);
 }
 
 .score-medium {
-  color: var(--color-accent);
+  color: var(--status-medium);
 }
 
 .score-low {
-  color: var(--color-danger);
+  color: var(--status-bad);
 }
 
 .app-status-badge {
@@ -341,8 +383,8 @@
 }
 
 .app-status-applied {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
+  background: var(--status-good-soft);
+  color: var(--status-good);
 }
 
 /* Sticky selection bar */
@@ -414,6 +456,24 @@
 
 .resume-modal-header h2 {
   margin: 0;
+}
+
+.resume-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.resume-modal-overlay-fullscreen {
+  padding: 0;
+}
+
+.resume-modal-fullscreen {
+  max-width: none;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
 }
 
 .resume-modal-body {

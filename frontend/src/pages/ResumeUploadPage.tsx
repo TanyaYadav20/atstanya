@@ -7,6 +7,8 @@ import type { Job } from "../types/job";
 import type { PooledResume } from "../types/resumePool";
 import "./ResumeUploadPage.css";
 
+type ViewMode = "JOB" | "ALL";
+
 // Everything the table + search need for one resume in the pool, resolved
 // from GET /api/resumes?jobId=... (candidateId populated) and cross-checked
 // against GET /api/applications?jobId=... for "already applied" state.
@@ -17,13 +19,22 @@ interface PoolRow {
   applied: boolean;
 }
 
+// Same shape as PoolRow, plus the job it belongs to — used by the "All
+// Resumes" view, which composes GET /api/resumes?jobId=... and
+// GET /api/applications?jobId=... across every job (same approach
+// DashboardPage.tsx already uses for a job-scoped-only application
+// endpoint), since the backend has no cross-job resume listing endpoint.
+interface AllPoolRow extends PoolRow {
+  job: Job;
+}
+
 function fileNameFromPath(filePath: string): string {
   return filePath.split(/[\\/]/).pop() || filePath;
 }
 
 function scoreClass(score: number): string {
   if (score >= 75) return "score-high";
-  if (score >= 50) return "score-medium";
+  if (score >= 45) return "score-medium";
   return "score-low";
 }
 
@@ -38,9 +49,16 @@ function formatDate(value: string): string {
 export default function ResumeUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [viewMode, setViewMode] = useState<ViewMode>("JOB");
+
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState("");
+
+  const [allRows, setAllRows] = useState<AllPoolRow[] | null>(null);
+  const [allError, setAllError] = useState<string | null>(null);
+  const [allSearch, setAllSearch] = useState("");
+  const [allApplyingIds, setAllApplyingIds] = useState<Set<string>>(new Set());
 
   const [resumesData, setResumesData] = useState<
     { rank: number; resume: PooledResume }[] | null
@@ -66,6 +84,7 @@ export default function ResumeUploadPage() {
   > | null>(null);
 
   const [viewResume, setViewResume] = useState<PooledResume | null>(null);
+  const [viewFullscreen, setViewFullscreen] = useState(false);
 
   // Load jobs once, from the real Job API — the dropdown never hardcodes titles.
   useEffect(() => {
@@ -88,6 +107,55 @@ export default function ResumeUploadPage() {
       cancelled = true;
     };
   }, []);
+
+  // "All Resumes" view: the backend has no cross-job resume listing
+  // endpoint, so compose the existing per-job resume + applications
+  // endpoints across every job — the same pattern DashboardPage.tsx
+  // already uses for applications.
+  async function loadAllResumes(jobList: Job[]) {
+    setAllError(null);
+    try {
+      const perJob = await Promise.all(
+        jobList.map((job) =>
+          Promise.all([
+            fetchResumesForJob(job._id),
+            fetchApplicationsForJob(job._id).catch(() => ({ applications: [] })),
+          ])
+            .then(([resumesRes, appsRes]) => {
+              const appliedIds = new Set(
+                appsRes.applications.map(({ application }) =>
+                  typeof application.candidateId === "object"
+                    ? application.candidateId._id
+                    : application.candidateId
+                )
+              );
+              return resumesRes.resumes
+                .filter(({ resume }) => Boolean(resume.candidateId))
+                .map(
+                  ({ rank, resume }): AllPoolRow => ({
+                    rank,
+                    resume,
+                    candidate: resume.candidateId,
+                    applied: appliedIds.has(resume.candidateId._id),
+                    job,
+                  })
+                );
+            })
+            .catch(() => [] as AllPoolRow[])
+        )
+      );
+      setAllRows(perJob.flat());
+    } catch (err) {
+      setAllError(err instanceof ApiError ? err.message : "Unable to load resumes.");
+    }
+  }
+
+  useEffect(() => {
+    if (viewMode !== "ALL" || !jobs) return;
+    setAllRows(null);
+    void loadAllResumes(jobs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, jobs]);
 
   // Every time the selected job changes, reload that job's resume pool and
   // its existing applications, and reset anything scoped to the old job.
@@ -194,6 +262,40 @@ export default function ResumeUploadPage() {
     });
   }, [rows, search]);
 
+  const filteredAllRows = useMemo(() => {
+    const query = allSearch.trim().toLowerCase();
+    const source = allRows ?? [];
+    if (!query) return source;
+
+    return source.filter((row) => {
+      const filename = fileNameFromPath(row.resume.filePath).toLowerCase();
+      return (
+        row.candidate.name?.toLowerCase().includes(query) ||
+        row.candidate.email?.toLowerCase().includes(query) ||
+        row.candidate.candidateRef?.toLowerCase().includes(query) ||
+        row.job.title.toLowerCase().includes(query) ||
+        filename.includes(query)
+      );
+    });
+  }, [allRows, allSearch]);
+
+  async function handleApplyOneAll(job: Job, candidateId: string) {
+    setAllApplyingIds((prev) => new Set(prev).add(candidateId));
+    setAllError(null);
+    try {
+      await bulkApplyToJob(job._id, [candidateId]);
+      await loadAllResumes(jobs ?? []);
+    } catch (err) {
+      setAllError(err instanceof ApiError ? err.message : "Failed to apply candidate.");
+    } finally {
+      setAllApplyingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(candidateId);
+        return next;
+      });
+    }
+  }
+
   const candidateNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const row of rows) map.set(row.candidate._id, row.candidate.name);
@@ -203,7 +305,11 @@ export default function ResumeUploadPage() {
   function handleFilesSelected(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     e.target.value = "";
-    if (!files || files.length === 0 || !selectedJobId) return;
+    if (!files || files.length === 0) return;
+    if (!selectedJobId) {
+      setUploadError("Please select a job before uploading resumes.");
+      return;
+    }
     void handleUpload(Array.from(files));
   }
 
@@ -282,36 +388,185 @@ export default function ResumeUploadPage() {
         <p className="resume-upload-subtitle">Upload, review, analyze, and apply candidates to jobs.</p>
       </div>
 
-      <div className="resume-upload-job-row">
-        <div className="resume-upload-job-selector">
-          <label className="field-label" htmlFor="resume-job-select">
-            Job Role
-          </label>
-          <select
-            id="resume-job-select"
-            className="resume-upload-select"
-            value={selectedJobId}
-            onChange={(e) => setSelectedJobId(e.target.value)}
-            disabled={jobs === null}
-          >
-            <option value="">{jobs === null ? "Loading jobs..." : "Select Job"}</option>
-            {jobs?.map((job) => (
-              <option key={job._id} value={job._id}>
-                {job.title}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="resume-view-toggle" role="tablist" aria-label="Resume view">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewMode === "ALL"}
+          className={`resume-view-toggle-btn${viewMode === "ALL" ? " resume-view-toggle-btn-active" : ""}`}
+          onClick={() => setViewMode("ALL")}
+        >
+          All Resumes
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewMode === "JOB"}
+          className={`resume-view-toggle-btn${viewMode === "JOB" ? " resume-view-toggle-btn-active" : ""}`}
+          onClick={() => setViewMode("JOB")}
+        >
+          By Job
+        </button>
       </div>
 
       {jobsError && <p className="resume-upload-state resume-upload-state-error">{jobsError}</p>}
 
-      {!selectedJobId && !jobsError && (
-        <p className="resume-upload-state">Select a job to view or upload resumes.</p>
+      {viewMode === "ALL" && (
+        <>
+          <div className="resume-upload-toolbar">
+            <input
+              className="resume-upload-search"
+              type="text"
+              placeholder="Search candidate, job, or resume..."
+              value={allSearch}
+              onChange={(e) => setAllSearch(e.target.value)}
+            />
+          </div>
+
+          {allError && <p className="resume-upload-state resume-upload-state-error">{allError}</p>}
+
+          {allRows === null && !allError && (
+            <p className="resume-upload-state">Loading resumes...</p>
+          )}
+          {allRows !== null && allRows.length === 0 && !allError && (
+            <p className="resume-upload-state">No resumes uploaded yet.</p>
+          )}
+          {allRows !== null && allRows.length > 0 && filteredAllRows.length === 0 && (
+            <p className="resume-upload-state">No candidates found.</p>
+          )}
+
+          {filteredAllRows.length > 0 && (
+            <div className="resume-pool-section">
+              <div className="resume-pool-table-wrap">
+                <table className="resume-pool-table">
+                  <thead>
+                    <tr>
+                      <th>Job</th>
+                      <th>Candidate</th>
+                      <th>Resume</th>
+                      <th>Experience</th>
+                      <th>AI Score</th>
+                      <th>Status</th>
+                      <th className="col-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAllRows.map((row) => (
+                      <tr key={row.resume._id}>
+                        <td data-label="Job">{row.job.title}</td>
+
+                        <td data-label="Candidate">
+                          <div className="candidate-cell">
+                            <span className="candidate-name">{row.candidate.name}</span>
+                            {row.candidate.email && (
+                              <span className="candidate-email">{row.candidate.email}</span>
+                            )}
+                            {row.candidate.candidateRef && (
+                              <span className="candidate-ref">{row.candidate.candidateRef}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td data-label="Resume">{fileNameFromPath(row.resume.filePath)}</td>
+
+                        <td data-label="Experience">
+                          {typeof row.candidate.totalExperienceYears === "number"
+                            ? `${row.candidate.totalExperienceYears} yrs`
+                            : "Not available"}
+                        </td>
+
+                        <td data-label="AI Score">
+                          {typeof row.resume.aiAnalysis?.overallMatchScore === "number" ? (
+                            <div
+                              className={`score-ring ${scoreClass(row.resume.aiAnalysis.overallMatchScore)}`}
+                              style={{
+                                background: `conic-gradient(currentColor ${
+                                  row.resume.aiAnalysis.overallMatchScore * 3.6
+                                }deg, var(--color-border) 0deg)`,
+                              }}
+                            >
+                              <span className="score-ring-value">
+                                {row.resume.aiAnalysis.overallMatchScore}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="resume-upload-muted">AI analysis not available</span>
+                          )}
+                        </td>
+
+                        <td data-label="Status">
+                          {row.applied ? (
+                            <span className="app-status-badge app-status-applied">Applied</span>
+                          ) : (
+                            <span className="resume-upload-muted">Not applied</span>
+                          )}
+                        </td>
+
+                        <td data-label="Actions" className="col-actions">
+                          <div className="resume-pool-row-actions">
+                            <Button
+                              variant="ghost"
+                              onClick={() => {
+                                setViewResume(row.resume);
+                                setViewFullscreen(false);
+                              }}
+                            >
+                              View Resume
+                            </Button>
+                            {row.applied ? (
+                              <Button variant="ghost" disabled>
+                                Applied
+                              </Button>
+                            ) : (
+                              <Button
+                                isLoading={allApplyingIds.has(row.candidate._id)}
+                                onClick={() => handleApplyOneAll(row.job, row.candidate._id)}
+                              >
+                                Apply
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {selectedJobId && (
+      {viewMode === "JOB" && (
         <>
+          <div className="resume-upload-job-row">
+            <div className="resume-upload-job-selector">
+              <label className="field-label" htmlFor="resume-job-select">
+                Job Role
+              </label>
+              <select
+                id="resume-job-select"
+                className="resume-upload-select"
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                disabled={jobs === null}
+              >
+                <option value="">{jobs === null ? "Loading jobs..." : "Select Job"}</option>
+                {jobs?.map((job) => (
+                  <option key={job._id} value={job._id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {!selectedJobId && !jobsError && (
+            <p className="resume-upload-state">Select a job to view or upload resumes.</p>
+          )}
+
+          {selectedJobId && (
+            <>
           <div className="resume-upload-toolbar">
             <input
               className="resume-upload-search"
@@ -366,7 +621,11 @@ export default function ResumeUploadPage() {
                           {item.status === "DUPLICATE" ? "Already in pool" : "Added to pool"}
                         </span>
                         {typeof item.aiAnalysis?.overallMatchScore === "number" && (
-                          <span className="resume-upload-tag tag-score">
+                          <span
+                            className={`resume-upload-tag tag-score ${scoreClass(
+                              item.aiAnalysis.overallMatchScore,
+                            )}`}
+                          >
                             {item.aiAnalysis.overallMatchScore}% match
                           </span>
                         )}
@@ -528,7 +787,13 @@ export default function ResumeUploadPage() {
 
                       <td data-label="Actions" className="col-actions">
                         <div className="resume-pool-row-actions">
-                          <Button variant="ghost" onClick={() => setViewResume(row.resume)}>
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              setViewResume(row.resume);
+                              setViewFullscreen(false);
+                            }}
+                          >
                             View Resume
                           </Button>
                           {row.applied ? (
@@ -570,20 +835,39 @@ export default function ResumeUploadPage() {
           </div>
         </div>
       )}
+        </>
+      )}
 
       {viewResume && (
-        <div className="resume-modal-overlay" onClick={() => setViewResume(null)}>
-          <div className="resume-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`resume-modal-overlay${viewFullscreen ? " resume-modal-overlay-fullscreen" : ""}`}
+          onClick={() => setViewResume(null)}
+        >
+          <div
+            className={`resume-modal${viewFullscreen ? " resume-modal-fullscreen" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="resume-modal-header">
               <h2>{viewResume.candidateId.name}</h2>
-              <button
-                type="button"
-                className="resume-upload-banner-dismiss"
-                onClick={() => setViewResume(null)}
-                aria-label="Close"
-              >
-                ×
-              </button>
+              <div className="resume-modal-header-actions">
+                <button
+                  type="button"
+                  className="resume-upload-banner-dismiss"
+                  onClick={() => setViewFullscreen((prev) => !prev)}
+                  aria-label={viewFullscreen ? "Exit full screen" : "View full screen"}
+                  title={viewFullscreen ? "Exit full screen" : "View full screen"}
+                >
+                  {viewFullscreen ? "⤡" : "⤢"}
+                </button>
+                <button
+                  type="button"
+                  className="resume-upload-banner-dismiss"
+                  onClick={() => setViewResume(null)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="resume-modal-body">

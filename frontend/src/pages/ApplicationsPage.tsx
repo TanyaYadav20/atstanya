@@ -33,7 +33,7 @@ function buildRow({ application, job }: ApplicationWithJob): ApplicationRow {
 
 function scoreClass(score: number): string {
   if (score >= 75) return "score-high";
-  if (score >= 50) return "score-medium";
+  if (score >= 45) return "score-medium";
   return "score-low";
 }
 

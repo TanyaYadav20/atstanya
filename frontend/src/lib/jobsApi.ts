@@ -27,6 +27,30 @@ export function createJob(
   });
 }
 
+export interface UpdateJobPayload {
+  title?: string;
+  description?: string;
+  status?: JobStatus;
+}
+
+// PUT /api/jobs/:id — backend/src/routes/jobRoutes.ts.
+export function updateJob(
+  id: string,
+  payload: UpdateJobPayload
+): Promise<{ message: string; job: Job }> {
+  return authRequest(`/jobs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+// DELETE /api/jobs/:id — backend/src/routes/jobRoutes.ts.
+export function deleteJob(id: string): Promise<{ message: string }> {
+  return authRequest(`/jobs/${id}`, {
+    method: "DELETE",
+  });
+}
+
 // GET /api/resumes/jobs — bulk resume-pool counts for every job,
 // used to enrich the Jobs list without an N+1 request per job.
 export function fetchResumePoolCounts(): Promise<{ jobs: ResumePoolCount[] }> {

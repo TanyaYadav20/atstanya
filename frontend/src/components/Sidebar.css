@@ -11,10 +11,28 @@
 }
 
 .sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 24px;
+}
+
+.sidebar-brand-mark {
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.sidebar-brand-name {
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: -0.01em;
-  padding: 0 12px 20px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
 .sidebar-nav {
@@ -35,7 +53,7 @@
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-overlay-hover);
   color: var(--color-text-primary);
 }
 

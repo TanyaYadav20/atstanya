@@ -30,7 +30,7 @@
 
 .btn-primary {
   background: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-accent-ink);
   box-shadow: 0 8px 24px -8px var(--color-accent-glow);
 }
 
@@ -56,7 +56,7 @@
 .btn-ghost:hover:not(:disabled) {
   color: var(--color-text-primary);
   border-color: var(--color-border-strong);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-overlay-hover);
 }
 
 .btn-ghost:focus-visible {
@@ -72,8 +72,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #ffffff;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
   animation: spin 0.6s linear infinite;
   flex-shrink: 0;
 }
