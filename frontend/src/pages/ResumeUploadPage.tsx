@@ -1,13 +1,180 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type KeyboardEvent,
+} from "react";
 import Button from "../components/Button";
 import { fetchApplicationsForJob, fetchJobs } from "../lib/jobsApi";
 import { bulkApplyToJob, fetchResumesForJob, uploadResumesForJob } from "../lib/resumePoolApi";
+import { getStoredToken } from "../lib/tokenStorage";
 import { ApiError } from "../types/auth";
 import type { Job } from "../types/job";
-import type { PooledResume } from "../types/resumePool";
+import type { PooledResume, UploadResumesResponse } from "../types/resumePool";
 import "./ResumeUploadPage.css";
 
 type ViewMode = "JOB" | "ALL";
+
+// Enterprise-style alert shown for file-selection/validation failures and
+// upload/API failures — a short title, a human-readable explanation, and
+// optionally a list of the specific files/reasons involved.
+interface UploadAlert {
+  title: string;
+  description: string;
+  details?: string[];
+}
+
+// Mirrors backend/src/middleware/upload.ts (fileFilter + limits.fileSize)
+// and the upload.array("resumes", 20) cap in
+// backend/src/routes/candidateRoutes.ts. The backend enforces these too,
+// but a multer fileFilter/size rejection surfaces there only as a generic
+// "Internal Server Error" (see backend/src/middleware/errorHandler.ts), so
+// checking client-side first gives the user an actionable message instead.
+const ALLOWED_RESUME_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+const MAX_RESUME_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_RESUME_FILES_PER_UPLOAD = 20;
+const MAX_RESUME_FILE_SIZE_MB = MAX_RESUME_FILE_SIZE_BYTES / (1024 * 1024);
+const SUPPORTED_FORMATS_LABEL = ALLOWED_RESUME_EXTENSIONS.map((ext) => ext.slice(1).toUpperCase()).join(", ");
+
+function getFileExtension(fileName: string): string {
+  const index = fileName.lastIndexOf(".");
+  return index === -1 ? "" : fileName.slice(index).toLowerCase();
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+// Checks a single file against the same rules the backend enforces
+// (backend/src/middleware/upload.ts) — used when staging newly
+// dropped/selected files so only valid ones ever reach the picker.
+function validateResumeFile(file: File): string | null {
+  if (!ALLOWED_RESUME_EXTENSIONS.includes(getFileExtension(file.name))) {
+    return `Unsupported file type. Please upload ${SUPPORTED_FORMATS_LABEL}.`;
+  }
+  if (file.size > MAX_RESUME_FILE_SIZE_BYTES) {
+    return `"${file.name}" is too large. Maximum allowed size is ${MAX_RESUME_FILE_SIZE_MB} MB.`;
+  }
+  return null;
+}
+
+// Partitions newly dropped/selected files into ones that can be staged and
+// validation issues to surface, respecting how many slots are left before
+// hitting MAX_RESUME_FILES_PER_UPLOAD for this batch.
+function partitionIncomingFiles(
+  newFiles: File[],
+  alreadyStagedCount: number
+): { valid: File[]; issues: string[] } {
+  const availableSlots = MAX_RESUME_FILES_PER_UPLOAD - alreadyStagedCount;
+  const issues: string[] = [];
+
+  if (availableSlots <= 0) {
+    return {
+      valid: [],
+      issues: [`You can upload a maximum of ${MAX_RESUME_FILES_PER_UPLOAD} files at a time.`],
+    };
+  }
+
+  const overflowCount = Math.max(0, newFiles.length - availableSlots);
+  const filesToCheck = overflowCount > 0 ? newFiles.slice(0, availableSlots) : newFiles;
+
+  if (overflowCount > 0) {
+    issues.push(
+      `You can upload a maximum of ${MAX_RESUME_FILES_PER_UPLOAD} files at a time. ${overflowCount} file${
+        overflowCount === 1 ? " was" : "s were"
+      } not added.`
+    );
+  }
+
+  const valid: File[] = [];
+  for (const file of filesToCheck) {
+    const issue = validateResumeFile(file);
+    if (issue) issues.push(issue);
+    else valid.push(file);
+  }
+
+  return { valid, issues };
+}
+
+// Translates a failed uploadResumesForJob() call into a user-facing alert.
+// Prefers the backend's own message (e.g. "Job not found", "No token
+// provided") whenever the request reached the server; falls back to a
+// friendly message for network failures and anything unexpected.
+function describeUploadError(err: unknown): UploadAlert {
+  if (err instanceof ApiError) {
+    if (err.status === 401 || err.status === 403) {
+      return {
+        title: "Authentication Required",
+        description: err.message || "Your session has expired. Please sign in again.",
+      };
+    }
+
+    if (err.status >= 500) {
+      return {
+        title: "Server Error",
+        description:
+          "The server ran into a problem processing your resumes. Please try again in a few moments.",
+      };
+    }
+
+    return {
+      title: "Resume Upload Failed",
+      description: err.message || "The selected resumes could not be uploaded. Please try again.",
+    };
+  }
+
+  if (err instanceof TypeError) {
+    return {
+      title: "Network Error",
+      description: "Unable to reach the server. Please check your internet connection and try again.",
+    };
+  }
+
+  return {
+    title: "Unexpected Error",
+    description: "Something went wrong while uploading your resumes. Please try again.",
+  };
+}
+
+// Turns the raw counts on a successful upload response into the
+// enterprise-style summary shown at the top of the results banner.
+function summarizeUploadResult(result: UploadResumesResponse): { title: string; description: string } {
+  const { totalFiles, processedFiles, failedFiles, candidates } = result;
+
+  if (failedFiles === 0) {
+    return {
+      title: "Resumes Uploaded Successfully",
+      description: `${processedFiles} resume${processedFiles === 1 ? "" : "s"} uploaded and analyzed.`,
+    };
+  }
+
+  if (processedFiles === 0) {
+    return {
+      title: "Resume Upload Failed",
+      description:
+        totalFiles === 1
+          ? `"${candidates[0]?.fileName ?? "The selected file"}" could not be processed. Please try again.`
+          : `All ${totalFiles} resumes failed to process. Please try again.`,
+    };
+  }
+
+  return {
+    title: "Some Resumes Could Not Be Processed",
+    description: `${processedFiles} resume${processedFiles === 1 ? "" : "s"} uploaded successfully. ${failedFiles} resume${
+      failedFiles === 1 ? "" : "s"
+    } failed to process.`,
+  };
+}
+
+function uploadResultTone(result: UploadResumesResponse): "success" | "warning" | "danger" {
+  if (result.failedFiles === 0) return "success";
+  if (result.processedFiles === 0) return "danger";
+  return "warning";
+}
 
 // Everything the table + search need for one resume in the pool, resolved
 // from GET /api/resumes?jobId=... (candidateId populated) and cross-checked
@@ -32,6 +199,31 @@ function fileNameFromPath(filePath: string): string {
   return filePath.split(/[\\/]/).pop() || filePath;
 }
 
+// GET /api/resumes/:id/file requires the same Bearer token as every other
+// API call (see lib/httpClient.ts), which a plain <a href> new-tab click
+// can't attach — so the file is fetched here and opened as a blob URL.
+async function openResumeFile(resumeId: string): Promise<void> {
+  try {
+    const token = getStoredToken();
+    const headers = new Headers();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const res = await fetch(`/api/resumes/${resumeId}/file`, { headers });
+    if (!res.ok) {
+      window.alert("Unable to open this resume file. It may have been removed.");
+      return;
+    }
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, "_blank", "noopener,noreferrer");
+  } catch {
+    window.alert("Unable to open this resume file. It may have been removed.");
+  }
+}
+
 function scoreClass(score: number): string {
   if (score >= 75) return "score-high";
   if (score >= 45) return "score-medium";
@@ -48,8 +240,12 @@ function formatDate(value: string): string {
 
 export default function ResumeUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
 
   const [viewMode, setViewMode] = useState<ViewMode>("JOB");
+
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [jobsError, setJobsError] = useState<string | null>(null);
@@ -71,7 +267,7 @@ export default function ResumeUploadPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<UploadAlert | null>(null);
   const [uploadResult, setUploadResult] = useState<Awaited<
     ReturnType<typeof uploadResumesForJob>
   > | null>(null);
@@ -161,6 +357,7 @@ export default function ResumeUploadPage() {
   // its existing applications, and reset anything scoped to the old job.
   useEffect(() => {
     setSelectedIds(new Set());
+    setPendingFiles([]);
     setUploadResult(null);
     setUploadError(null);
     setApplyResult(null);
@@ -247,6 +444,15 @@ export default function ResumeUploadPage() {
       }));
   }, [resumesData, appliedIds]);
 
+  const uploadSummary = useMemo(
+    () => (uploadResult ? summarizeUploadResult(uploadResult) : null),
+    [uploadResult]
+  );
+  const uploadTone = useMemo(
+    () => (uploadResult ? uploadResultTone(uploadResult) : null),
+    [uploadResult]
+  );
+
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return rows;
@@ -302,26 +508,101 @@ export default function ResumeUploadPage() {
     return map;
   }, [rows]);
 
-  function handleFilesSelected(e: ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    e.target.value = "";
-    if (!files || files.length === 0) return;
+  // Stages newly dropped/selected files onto the pending list — used by
+  // both the file picker input and the drop zone's onDrop handler.
+  function stageFiles(incomingFiles: File[]) {
+    if (incomingFiles.length === 0) return;
+
     if (!selectedJobId) {
-      setUploadError("Please select a job before uploading resumes.");
+      setUploadError({
+        title: "No Job Selected",
+        description: "Please select a job before uploading resumes.",
+      });
       return;
     }
-    void handleUpload(Array.from(files));
+
+    const { valid, issues } = partitionIncomingFiles(incomingFiles, pendingFiles.length);
+
+    if (valid.length > 0) {
+      setPendingFiles((prev) => [...prev, ...valid]);
+    }
+
+    if (issues.length > 0) {
+      setUploadError({
+        title: "Some Files Cannot Be Added",
+        description: "Please review the following:",
+        details: issues,
+      });
+    } else {
+      setUploadError(null);
+    }
+  }
+
+  function handleFilesSelected(e: ChangeEvent<HTMLInputElement>) {
+    // The FileList behind e.target.files is live — it reflects the input's
+    // current selection, so clearing the input's value also empties it.
+    // Copy the files into a plain array first, before clearing the input.
+    const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = "";
+    stageFiles(selectedFiles);
+  }
+
+  function handleDropzoneClick() {
+    if (uploading) return;
+    fileInputRef.current?.click();
+  }
+
+  function handleDropzoneKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleDropzoneClick();
+    }
+  }
+
+  function handleDragEnter(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    setIsDragging(true);
+  }
+
+  function handleDragOver(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+  }
+
+  function handleDragLeave(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) setIsDragging(false);
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    if (uploading) return;
+    stageFiles(Array.from(e.dataTransfer.files));
+  }
+
+  function removeStagedFile(index: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleUploadClick() {
+    if (uploading || pendingFiles.length === 0) return;
+    void handleUpload(pendingFiles);
   }
 
   async function handleUpload(files: File[]) {
     setUploading(true);
     setUploadError(null);
+    setUploadResult(null);
     try {
       const result = await uploadResumesForJob(selectedJobId, files);
       setUploadResult(result);
+      setPendingFiles([]);
       await refreshResumes();
     } catch (err) {
-      setUploadError(err instanceof ApiError ? err.message : "Failed to upload resumes.");
+      setUploadError(describeUploadError(err));
     } finally {
       setUploading(false);
     }
@@ -467,7 +748,19 @@ export default function ResumeUploadPage() {
                           </div>
                         </td>
 
-                        <td data-label="Resume">{fileNameFromPath(row.resume.filePath)}</td>
+                        <td data-label="Resume">
+                          <a
+                            href={`/api/resumes/${row.resume._id}/file`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              void openResumeFile(row.resume._id);
+                            }}
+                          >
+                            {fileNameFromPath(row.resume.filePath)}
+                          </a>
+                        </td>
 
                         <td data-label="Experience">
                           {typeof row.candidate.totalExperienceYears === "number"
@@ -575,26 +868,131 @@ export default function ResumeUploadPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.xls,.xlsx"
-              onChange={handleFilesSelected}
-              className="resume-upload-file-input"
-            />
-            <Button onClick={() => fileInputRef.current?.click()} isLoading={uploading}>
-              {uploading ? "Uploading & analyzing..." : "+ Upload Resumes"}
-            </Button>
           </div>
 
-          {uploadError && <p className="resume-upload-state resume-upload-state-error">{uploadError}</p>}
+          <div className="resume-dropzone-wrap">
+            <div
+              className={`resume-dropzone${isDragging ? " resume-dropzone-active" : ""}${
+                uploading ? " resume-dropzone-disabled" : ""
+              }`}
+              onClick={handleDropzoneClick}
+              onKeyDown={handleDropzoneKeyDown}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              role="button"
+              tabIndex={0}
+              aria-label="Drag and drop resumes, or click to browse files"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ALLOWED_RESUME_EXTENSIONS.join(",")}
+                onChange={handleFilesSelected}
+                className="resume-upload-file-input"
+              />
+              <div className="resume-dropzone-icon" aria-hidden="true">
+                ⬆
+              </div>
+              {pendingFiles.length > 0 && !isDragging ? (
+                <>
+                  <p className="resume-dropzone-title">
+                    {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} selected
+                  </p>
+                  <p className="resume-dropzone-hint">Drop more files or click to browse</p>
+                </>
+              ) : (
+                <>
+                  <p className="resume-dropzone-title">
+                    {isDragging ? "Drop Resumes Here" : "Drag & Drop Resumes Here"}
+                  </p>
+                  <p className="resume-dropzone-hint">or click to browse</p>
+                </>
+              )}
+            </div>
 
-          {uploadResult && (
-            <div className="resume-upload-banner">
+            <p className="resume-dropzone-support">
+              Supported formats: {SUPPORTED_FORMATS_LABEL}
+              <br />
+              Maximum file size: {MAX_RESUME_FILE_SIZE_MB} MB · Maximum files: {MAX_RESUME_FILES_PER_UPLOAD}
+            </p>
+
+            {pendingFiles.length > 0 && (
+              <div className="resume-file-list">
+                <div className="resume-file-list-header">
+                  <span>Resume Files</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => setPendingFiles([])}
+                    disabled={uploading}
+                  >
+                    Clear All
+                  </button>
+                </div>
+
+                <ul className="resume-file-list-items">
+                  {pendingFiles.map((file, index) => (
+                    <li key={`${file.name}-${file.size}-${index}`} className="resume-file-row">
+                      <span className="resume-file-check" aria-hidden="true">
+                        ✓
+                      </span>
+                      <div className="resume-file-meta">
+                        <span className="resume-file-name">{file.name}</span>
+                        <span className="resume-file-details">
+                          {formatFileSize(file.size)} · {getFileExtension(file.name).slice(1).toUpperCase()}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="resume-file-remove"
+                        onClick={() => removeStagedFile(index)}
+                        disabled={uploading}
+                        aria-label={`Remove ${file.name}`}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button onClick={handleUploadClick} isLoading={uploading} disabled={pendingFiles.length === 0}>
+                  {uploading ? "Uploading & analyzing..." : "Upload Resumes"}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {uploadError && (
+            <div className="resume-upload-banner resume-upload-banner-danger" role="alert">
               <div className="resume-upload-banner-header">
-                <strong>{uploadResult.message}</strong>
+                <strong>{uploadError.title}</strong>
+                <button
+                  type="button"
+                  className="resume-upload-banner-dismiss"
+                  onClick={() => setUploadError(null)}
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="resume-upload-banner-description">{uploadError.description}</p>
+              {uploadError.details && uploadError.details.length > 0 && (
+                <ul className="resume-upload-banner-list">
+                  {uploadError.details.map((detail, index) => (
+                    <li key={index}>{detail}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {uploadResult && uploadSummary && (
+            <div className={`resume-upload-banner resume-upload-banner-${uploadTone}`}>
+              <div className="resume-upload-banner-header">
+                <strong>{uploadSummary.title}</strong>
                 <button
                   type="button"
                   className="resume-upload-banner-dismiss"
@@ -604,12 +1002,13 @@ export default function ResumeUploadPage() {
                   ×
                 </button>
               </div>
+              <p className="resume-upload-banner-description">{uploadSummary.description}</p>
               <ul className="resume-upload-banner-list">
                 {uploadResult.candidates.map((item, index) => (
                   <li key={`${item.fileName}-${index}`}>
                     <span className="resume-upload-banner-file">{item.fileName}</span>
                     {item.error ? (
-                      <span className="resume-upload-tag tag-failed">{item.error}</span>
+                      <span className="resume-upload-error-text">{item.error}</span>
                     ) : (
                       <>
                         <span>{item.candidate?.name ?? "Unknown candidate"}</span>
@@ -750,7 +1149,19 @@ export default function ResumeUploadPage() {
                         </div>
                       </td>
 
-                      <td data-label="Resume">{fileNameFromPath(row.resume.filePath)}</td>
+                      <td data-label="Resume">
+                        <a
+                          href={`/api/resumes/${row.resume._id}/file`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            void openResumeFile(row.resume._id);
+                          }}
+                        >
+                          {fileNameFromPath(row.resume.filePath)}
+                        </a>
+                      </td>
 
                       <td data-label="Experience">
                         {typeof row.candidate.totalExperienceYears === "number"
@@ -922,7 +1333,17 @@ export default function ResumeUploadPage() {
                 <div className="candidate-details-grid">
                   <div>
                     <span className="candidate-details-label">Filename</span>
-                    <span>{fileNameFromPath(viewResume.filePath)}</span>
+                    <a
+                      href={`/api/resumes/${viewResume._id}/file`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void openResumeFile(viewResume._id);
+                      }}
+                    >
+                      {fileNameFromPath(viewResume.filePath)}
+                    </a>
                   </div>
                   <div>
                     <span className="candidate-details-label">Uploaded</span>
@@ -930,8 +1351,8 @@ export default function ResumeUploadPage() {
                   </div>
                 </div>
                 <p className="resume-modal-note">
-                  This backend does not currently serve resume files for browser preview — showing the
-                  extracted resume text below instead.
+                  Click the filename above to open the original file in a new tab. The extracted
+                  resume text used for AI analysis is shown below.
                 </p>
                 <pre className="resume-modal-text">{viewResume.resumeText || "Not available"}</pre>
               </section>

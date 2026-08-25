@@ -1,5 +1,7 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import path from "path";
+import fs from "fs";
 
 import Job from "../models/Job";
 import Resume from "../models/Resume";
@@ -8,12 +10,13 @@ import { getResumesByJob, getResumeById } from "../services/resume.service";
 
 const router = Router();
 
+// Resumes are always saved under this directory (see
+// backend/src/middleware/upload.ts) — resolved once so every request
+// checks the file it resolves against the same absolute base path.
+const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+
 // ============================================================
 // GET /api/resumes/jobs
-//
-// Every job, with how many recruiter-uploaded resumes exist in
-// its pool. Uses an aggregation for the counts rather than
-// loading every Resume document into memory.
 // ============================================================
 
 router.get("/jobs", requireAuth, async (_req, res, next) => {
@@ -57,10 +60,6 @@ router.get("/jobs", requireAuth, async (_req, res, next) => {
 
 // ============================================================
 // GET /api/resumes?jobId=...
-//
-// All resumes in a job's pool, ranked by AI score. Rank is
-// computed here for the response only — never written to
-// MongoDB.
 // ============================================================
 
 router.get("/", requireAuth, async (req, res, next) => {
@@ -114,6 +113,56 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 
     return res.status(200).json({
       resume,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================
+// GET /api/resumes/:id/file — streams the original resume file
+// ============================================================
+
+router.get("/:id/file", requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid resume ID",
+      });
+    }
+
+    const resume = await Resume.findById(id);
+
+    if (!resume) {
+      return res.status(404).json({
+        message: "Resume not found",
+      });
+    }
+
+    // Only the stored filename is trusted; any directory components are
+    // dropped and the result re-resolved under UPLOADS_DIR so a crafted
+    // filePath can't be used to escape the uploads directory.
+    const resolvedPath = path.resolve(UPLOADS_DIR, path.basename(resume.filePath));
+
+    if (
+      resolvedPath !== UPLOADS_DIR &&
+      !resolvedPath.startsWith(UPLOADS_DIR + path.sep)
+    ) {
+      return res.status(400).json({
+        message: "Invalid resume file path",
+      });
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(404).json({
+        message: "Resume file not found",
+      });
+    }
+
+    return res.sendFile(resolvedPath, {
+      headers: { "Content-Disposition": "inline" },
     });
   } catch (error) {
     next(error);

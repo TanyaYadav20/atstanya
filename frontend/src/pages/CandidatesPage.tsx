@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import { fetchApplicationsForCandidate, fetchCandidates } from "../lib/candidatesApi";
 import { ApiError } from "../types/auth";
-import type { Candidate, CandidateApplication } from "../types/candidate";
+import type { Candidate, CandidateApplication, Resume } from "../types/candidate";
 import type { Job } from "../types/job";
 import "./CandidatesPage.css";
 
@@ -19,10 +19,15 @@ interface CandidateRow {
   appliedJobTitle: string | null;
   skills: string[];
   matchScore: number | null;
+  resumeUploadedAt: string | null;
 }
 
 function isPopulatedJob(job: Job | string): job is Job {
   return typeof job === "object" && job !== null;
+}
+
+function isPopulatedResume(resume: Resume | string): resume is Resume {
+  return typeof resume === "object" && resume !== null;
 }
 
 function buildRow(candidate: Candidate, applications: CandidateApplication[] | null): CandidateRow {
@@ -40,6 +45,11 @@ function buildRow(candidate: Candidate, applications: CandidateApplication[] | n
       ? latestApplication.aiAnalysis.overallMatchScore
       : null;
 
+  const resumeUploadedAt =
+    latestApplication && isPopulatedResume(latestApplication.resumeId)
+      ? latestApplication.resumeId.createdAt
+      : null;
+
   return {
     candidate,
     latestApplication,
@@ -47,6 +57,7 @@ function buildRow(candidate: Candidate, applications: CandidateApplication[] | n
     appliedJobTitle,
     skills,
     matchScore,
+    resumeUploadedAt,
   };
 }
 
@@ -213,6 +224,7 @@ export default function CandidatesPage() {
                 <th>Experience</th>
                 <th>Status</th>
                 <th>Match Score</th>
+                <th>Resume</th>
                 <th className="col-actions">Actions</th>
               </tr>
             </thead>
@@ -293,6 +305,16 @@ export default function CandidatesPage() {
                       </div>
                     ) : (
                       <span className="candidates-muted">Not analyzed</span>
+                    )}
+                  </td>
+
+                  <td data-label="Resume">
+                    {row.resumeUploadedAt ? (
+                      <span className="resume-badge">
+                        On file · {new Date(row.resumeUploadedAt).toLocaleDateString()}
+                      </span>
+                    ) : (
+                      <span className="candidates-muted">Not available</span>
                     )}
                   </td>
 

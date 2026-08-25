@@ -50,11 +50,6 @@ export async function getResumeById(resumeId: string): Promise<ResumeDoc> {
 
 // ============================================================
 // FIND OR CREATE A RESUME — scoped to (jobId, resumeHash)
-//
-// resumeHash identifies an exact duplicate FILE for this job
-// only. It is never used to resolve candidate identity — the
-// candidateId passed in must already have been resolved by
-// candidateMatching.service.ts before calling this.
 // ============================================================
 
 interface FindOrCreateResumeInput {
@@ -68,13 +63,7 @@ interface FindOrCreateResumeInput {
 
 // ============================================================
 // FIND THE RESUME TO APPLY WITH — scoped to (candidateId, jobId)
-//
-// Used by the recruiter bulk-apply flow: a candidate's resume
-// already lives in this job's pool (created by /upload-resume),
-// so this never creates a Resume — it just picks the one to
-// attach to the Application. If more than one resume exists for
-// this candidate in this job (re-uploads), prefer the
-// highest-scored one, same tie-break as getResumesByJob.
+
 // ============================================================
 
 export async function findResumeForCandidateInJob(

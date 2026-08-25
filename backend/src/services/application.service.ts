@@ -110,15 +110,6 @@ export async function createOrUpdateApplication(
 // BULK APPLY — recruiter selects candidates from a job's resume
 // pool (already created via /api/candidates/upload-resume) and
 // applies them to the job.
-//
-// Each candidate is processed independently so one bad ID can't
-// fail the whole batch. Application creation itself is NOT
-// duplicated here — it delegates to createOrUpdateApplication,
-// the same function /api/candidates/apply uses. The only
-// bulk-specific rule is: if the candidate already has an
-// Application for this job, skip instead of overwriting it —
-// unlike a resubmission through /apply, a recruiter selecting an
-// already-applied candidate again isn't providing a new resume.
 // ============================================================
 
 export async function bulkCreateApplicationsForJob(

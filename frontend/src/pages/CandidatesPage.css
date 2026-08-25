@@ -186,6 +186,12 @@
   color: var(--color-text-primary);
 }
 
+.resume-badge {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 .score-high {
   color: var(--status-good);
 }
