@@ -76,8 +76,33 @@ function formatRelativeTime(value: string | undefined | null): string {
   });
 }
 
+// Buckets by the viewer's local calendar date, not UTC — using
+// toISOString() here would shift anything after ~6:30pm IST (UTC+5:30)
+// onto the next UTC day, so an application made today in India could
+// silently land in "tomorrow"'s bucket once the days rolled over.
+function toLocalDateKey(value: string | Date): string {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Re-applying to the same job updates the existing Application document
+// instead of creating a new one (see backend/src/services/application.service.ts
+// createOrUpdateApplication) — createdAt stays put and updatedAt moves to
+// today. A createdAt-only chart would miss that resubmission entirely, so
+// bucket by whichever timestamp reflects the most recent activity. On
+// creation both fields start out equal, so this still falls back to
+// createdAt for brand-new applications.
+function latestActivityTimestamp(application: Application): string {
+  return safeTime(application.updatedAt) > safeTime(application.createdAt)
+    ? application.updatedAt
+    : application.createdAt;
+}
+
 // Builds a real, from-data daily series for the last N days from each
-// application's actual createdAt — no synthetic/fabricated values.
+// application's actual activity — no synthetic/fabricated values.
 function buildDailySeries(appsWithJob: ApplicationWithJob[], days: number): DayBucket[] {
   const buckets: DayBucket[] = [];
   const now = new Date();
@@ -85,7 +110,7 @@ function buildDailySeries(appsWithJob: ApplicationWithJob[], days: number): DayB
     const d = new Date(now);
     d.setDate(now.getDate() - i);
     buckets.push({
-      key: d.toISOString().slice(0, 10),
+      key: toLocalDateKey(d),
       label: d.toLocaleDateString("en-US", { weekday: "short" }),
       count: 0,
       isToday: i === 0,
@@ -93,7 +118,7 @@ function buildDailySeries(appsWithJob: ApplicationWithJob[], days: number): DayB
   }
   const byKey = new Map(buckets.map((b) => [b.key, b]));
   for (const { application } of appsWithJob) {
-    const bucket = byKey.get(new Date(application.createdAt).toISOString().slice(0, 10));
+    const bucket = byKey.get(toLocalDateKey(latestActivityTimestamp(application)));
     if (bucket) bucket.count += 1;
   }
   return buckets;
@@ -240,6 +265,25 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [reloadToken]);
+
+  // Applications can be submitted from another tab/page (resume upload,
+  // bulk apply) while the Dashboard stays mounted in the background.
+  // Re-fetch whenever the user comes back to this tab/page instead of
+  // relying solely on the mount-time fetch above, so the activity chart
+  // doesn't show stale counts. Event-driven, not polling.
+  useEffect(() => {
+    function refetchOnReturn() {
+      if (document.visibilityState === "visible") {
+        setReloadToken((t) => t + 1);
+      }
+    }
+    document.addEventListener("visibilitychange", refetchOnReturn);
+    window.addEventListener("focus", refetchOnReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", refetchOnReturn);
+      window.removeEventListener("focus", refetchOnReturn);
+    };
+  }, []);
 
   const jobs = useMemo(() => data?.jobs ?? [], [data]);
   const candidates = useMemo(() => data?.candidates ?? [], [data]);

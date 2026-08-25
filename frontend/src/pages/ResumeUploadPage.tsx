@@ -10,6 +10,7 @@ import {
 import Button from "../components/Button";
 import { fetchApplicationsForJob, fetchJobs } from "../lib/jobsApi";
 import { bulkApplyToJob, fetchResumesForJob, uploadResumesForJob } from "../lib/resumePoolApi";
+import { getStoredToken } from "../lib/tokenStorage";
 import { ApiError } from "../types/auth";
 import type { Job } from "../types/job";
 import type { PooledResume, UploadResumesResponse } from "../types/resumePool";
@@ -196,6 +197,31 @@ interface AllPoolRow extends PoolRow {
 
 function fileNameFromPath(filePath: string): string {
   return filePath.split(/[\\/]/).pop() || filePath;
+}
+
+// GET /api/resumes/:id/file requires the same Bearer token as every other
+// API call (see lib/httpClient.ts), which a plain <a href> new-tab click
+// can't attach — so the file is fetched here and opened as a blob URL.
+async function openResumeFile(resumeId: string): Promise<void> {
+  try {
+    const token = getStoredToken();
+    const headers = new Headers();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const res = await fetch(`/api/resumes/${resumeId}/file`, { headers });
+    if (!res.ok) {
+      window.alert("Unable to open this resume file. It may have been removed.");
+      return;
+    }
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, "_blank", "noopener,noreferrer");
+  } catch {
+    window.alert("Unable to open this resume file. It may have been removed.");
+  }
 }
 
 function scoreClass(score: number): string {
@@ -722,7 +748,19 @@ export default function ResumeUploadPage() {
                           </div>
                         </td>
 
-                        <td data-label="Resume">{fileNameFromPath(row.resume.filePath)}</td>
+                        <td data-label="Resume">
+                          <a
+                            href={`/api/resumes/${row.resume._id}/file`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              void openResumeFile(row.resume._id);
+                            }}
+                          >
+                            {fileNameFromPath(row.resume.filePath)}
+                          </a>
+                        </td>
 
                         <td data-label="Experience">
                           {typeof row.candidate.totalExperienceYears === "number"
@@ -1111,7 +1149,19 @@ export default function ResumeUploadPage() {
                         </div>
                       </td>
 
-                      <td data-label="Resume">{fileNameFromPath(row.resume.filePath)}</td>
+                      <td data-label="Resume">
+                        <a
+                          href={`/api/resumes/${row.resume._id}/file`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            void openResumeFile(row.resume._id);
+                          }}
+                        >
+                          {fileNameFromPath(row.resume.filePath)}
+                        </a>
+                      </td>
 
                       <td data-label="Experience">
                         {typeof row.candidate.totalExperienceYears === "number"
@@ -1283,7 +1333,17 @@ export default function ResumeUploadPage() {
                 <div className="candidate-details-grid">
                   <div>
                     <span className="candidate-details-label">Filename</span>
-                    <span>{fileNameFromPath(viewResume.filePath)}</span>
+                    <a
+                      href={`/api/resumes/${viewResume._id}/file`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void openResumeFile(viewResume._id);
+                      }}
+                    >
+                      {fileNameFromPath(viewResume.filePath)}
+                    </a>
                   </div>
                   <div>
                     <span className="candidate-details-label">Uploaded</span>
@@ -1291,8 +1351,8 @@ export default function ResumeUploadPage() {
                   </div>
                 </div>
                 <p className="resume-modal-note">
-                  This backend does not currently serve resume files for browser preview — showing the
-                  extracted resume text below instead.
+                  Click the filename above to open the original file in a new tab. The extracted
+                  resume text used for AI analysis is shown below.
                 </p>
                 <pre className="resume-modal-text">{viewResume.resumeText || "Not available"}</pre>
               </section>

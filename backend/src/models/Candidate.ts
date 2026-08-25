@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { normalizeUrl } from "../utils/normalize";
 
 // ============================================================
-// A record of an ambiguous (REVIEW-confidence) candidate match.
+// A record of an ambiguous (REVIEW-confidence) candidate match
 // ============================================================
 
 export interface IPossibleDuplicate {
